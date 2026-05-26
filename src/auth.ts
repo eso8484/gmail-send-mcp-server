@@ -1,6 +1,10 @@
-import { google } from "googleapis";
+import { gmail } from "@googleapis/gmail";
 import { OAuth2Client } from "google-auth-library";
 
+/**
+ * Creates and returns an authenticated OAuth2 client using environment credentials.
+ * Expects GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN in process.env.
+ */
 export function createAuthClient(): OAuth2Client {
   const clientId = process.env.GMAIL_CLIENT_ID;
   const clientSecret = process.env.GMAIL_CLIENT_SECRET;
@@ -12,16 +16,23 @@ export function createAuthClient(): OAuth2Client {
     );
   }
 
-  const auth = new google.auth.OAuth2(clientId, clientSecret);
+  const auth = new OAuth2Client(clientId, clientSecret);
   auth.setCredentials({ refresh_token: refreshToken });
   return auth;
 }
 
+/**
+ * Returns an authenticated Gmail API client.
+ */
 export function createGmailClient() {
   const auth = createAuthClient();
-  return google.gmail({ version: "v1", auth });
+  return gmail({ version: "v1", auth });
 }
 
+/**
+ * Builds a RFC 2822 compliant email message and returns it as a base64url-encoded string.
+ * This format is required by the Gmail API.
+ */
 export function buildRawMessage(params: {
   to: string;
   cc?: string;
@@ -55,6 +66,7 @@ export function buildRawMessage(params: {
 
   const raw = [...headers, "", params.body].join("\r\n");
 
+  // Gmail requires base64url encoding (replaces +→-, /→_, strips =)
   return Buffer.from(raw)
     .toString("base64")
     .replace(/\+/g, "-")

@@ -1,28 +1,43 @@
 import "dotenv/config";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import express from "express";
 import { registerGmailTools } from "./tools/gmail.js";
 
-const server = new McpServer({
-  name: "gmail-send-mcp-server",
-  version: "1.0.0",
-});
-
-registerGmailTools(server);
-
+// ─────────────────────────────────────────────────────────────
+// Transport: stdio (default for Claude Desktop)
+// ─────────────────────────────────────────────────────────────
 async function runStdio(): Promise<void> {
+  const server = new McpServer({
+    name: "gmail-send-mcp-server",
+    version: "1.0.0",
+  });
+  registerGmailTools(server);
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("Gmail Send MCP Server running on stdio");
 }
 
+// ─────────────────────────────────────────────────────────────
+// Transport: HTTP (optional, for remote use)
+// Each request gets its own McpServer + transport instance
+// because McpServer is stateful and can only hold one connection.
+// ─────────────────────────────────────────────────────────────
 async function runHTTP(): Promise<void> {
+  // Loaded lazily so stdio mode (the default) doesn't pay the import cost.
+  const { default: express } = await import("express");
+  const { StreamableHTTPServerTransport } = await import(
+    "@modelcontextprotocol/sdk/server/streamableHttp.js"
+  );
+
   const app = express();
   app.use(express.json());
 
   app.post("/mcp", async (req, res) => {
+    const server = new McpServer({
+      name: "gmail-send-mcp-server",
+      version: "1.0.0",
+    });
+    registerGmailTools(server);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
@@ -38,6 +53,9 @@ async function runHTTP(): Promise<void> {
   });
 }
 
+// ─────────────────────────────────────────────────────────────
+// Start
+// ─────────────────────────────────────────────────────────────
 const transport = process.env.TRANSPORT ?? "stdio";
 
 if (transport === "http") {
