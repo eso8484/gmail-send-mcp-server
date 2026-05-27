@@ -2,11 +2,38 @@
   "name": "gmail-send-mcp-server",
   "version": "1.0.0",
   "description": "MCP server that adds Gmail send capabilities — send new emails, reply to threads, forward, and send drafts",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "gmail",
+    "email",
+    "claude",
+    "claude-desktop"
+  ],
+  "license": "MIT",
+  "author": "eso8484",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eso8484/gmail-send-mcp-server.git"
+  },
   "main": "dist/index.js",
+  "bin": {
+    "gmail-send-mcp-server": "dist/index.js",
+    "gmail-send-get-token": "get-refresh-token.js"
+  },
+  "files": [
+    "dist",
+    "get-refresh-token.js",
+    ".env.example"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "dev": "ts-node src/index.ts",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@googleapis/gmail": "^16.1.2",

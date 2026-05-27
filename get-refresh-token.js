@@ -1,10 +1,14 @@
+#!/usr/bin/env node
 // One-time helper to obtain a Gmail OAuth2 refresh token using the modern
 // loopback redirect flow (the old urn:ietf:wg:oauth:2.0:oob flow is dead).
 //
-// Usage:
-//   GMAIL_CLIENT_ID=xxx GMAIL_CLIENT_SECRET=yyy node get-refresh-token.js
+// Usage (cloned repo, credentials in .env):
+//   node get-refresh-token.js
+// Usage (installed from npm, no .env):
+//   GMAIL_CLIENT_ID=xxx GMAIL_CLIENT_SECRET=yyy npx -p gmail-send-mcp-server gmail-send-get-token
 //
-// Then open the printed URL, authorize, and your refresh token prints here.
+// If a .env exists in the current directory, the token is written there.
+// Otherwise it is printed so you can paste it into your MCP config.
 
 require("dotenv/config");
 const http = require("http");
@@ -12,15 +16,11 @@ const fs = require("fs");
 const path = require("path");
 const { OAuth2Client } = require("google-auth-library");
 
-// Writes the refresh token into .env, replacing the existing line if present.
-function saveRefreshToken(token) {
-  const envPath = path.join(__dirname, ".env");
-  let content = "";
-  try {
-    content = fs.readFileSync(envPath, "utf8");
-  } catch {
-    // no .env yet — we'll create one
-  }
+// Updates ./.env with the token if that file exists. Returns true if written.
+function saveToEnv(token) {
+  const envPath = path.join(process.cwd(), ".env");
+  if (!fs.existsSync(envPath)) return false;
+  let content = fs.readFileSync(envPath, "utf8");
   if (/^GMAIL_REFRESH_TOKEN=.*$/m.test(content)) {
     content = content.replace(/^GMAIL_REFRESH_TOKEN=.*$/m, `GMAIL_REFRESH_TOKEN=${token}`);
   } else {
@@ -28,6 +28,7 @@ function saveRefreshToken(token) {
     content += `${sep}GMAIL_REFRESH_TOKEN=${token}\n`;
   }
   fs.writeFileSync(envPath, content);
+  return true;
 }
 
 const CLIENT_ID = process.env.GMAIL_CLIENT_ID;
@@ -78,12 +79,17 @@ const server = http.createServer(async (req, res) => {
     const { tokens } = await oauth2Client.getToken(code);
     res.end("Success. You can close this tab and return to the terminal.");
     if (tokens.refresh_token) {
-      saveRefreshToken(tokens.refresh_token);
-      const masked =
-        tokens.refresh_token.slice(0, 6) + "…" + tokens.refresh_token.slice(-4);
+      const saved = saveToEnv(tokens.refresh_token);
       console.log("\n=================================================");
-      console.log("Success — refresh token saved to .env");
-      console.log(`Token (masked): ${masked}`);
+      if (saved) {
+        const masked =
+          tokens.refresh_token.slice(0, 6) + "…" + tokens.refresh_token.slice(-4);
+        console.log("Success — refresh token saved to ./.env");
+        console.log(`Token (masked): ${masked}`);
+      } else {
+        console.log("Success — your refresh token (paste into your MCP config or .env):\n");
+        console.log(tokens.refresh_token);
+      }
       console.log("=================================================\n");
     } else {
       console.log(
