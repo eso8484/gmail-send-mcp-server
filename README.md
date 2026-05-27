@@ -120,6 +120,16 @@ Add this block inside `"mcpServers"` (note `command` is just `npx`):
 
 Restart Claude Desktop — the new tools appear in the tool list.
 
+> **Windows note:** if `gmail-send` shows as failed to start, Claude Desktop usually can't find `npx` on your PATH. Wrap the command with `cmd` instead — set `"command": "cmd"` and `"args": ["/c", "npx", "-y", "gmail-send-mcp-server"]`, keeping the same `env` block:
+>
+> ```json
+> "gmail-send": {
+>   "command": "cmd",
+>   "args": ["/c", "npx", "-y", "gmail-send-mcp-server"],
+>   "env": { "GMAIL_CLIENT_ID": "...", "GMAIL_CLIENT_SECRET": "...", "GMAIL_REFRESH_TOKEN": "...", "GMAIL_USER_EMAIL": "you@gmail.com" }
+> }
+> ```
+
 ---
 
 ## Available Tools
